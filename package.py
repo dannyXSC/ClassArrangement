@@ -39,6 +39,8 @@ class Package():
             message_json_byte = message_json.encode('utf-8')
             header['message_length'] = len(message_json_byte)
             message = message_json_byte
+        else:
+            return False
         header_info = self.pack_header(header)
         return header_info + message.encode('utf-8')
 
@@ -56,7 +58,10 @@ class Package():
         '''
         return json.loads(header_byte.decode('utf-8'))
 
-    def unpack_message(self,message,mode):
+    def unpack_message(self, message, mode='dictionary'):
         if mode == 'utf-8':
-            
-
+            return message.decode('utf-8')
+        if mode == 'dictionary':
+            return json.loads(message.decode('utf-8'))
+        else:
+            return False

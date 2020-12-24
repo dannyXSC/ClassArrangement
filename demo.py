@@ -1,8 +1,6 @@
-class demo():
-    def fun(self, message):
-        print(type(message) == type({}))
+def fun():
+    return 1, 2
 
 
-handle = demo()
-target = "{'123': 1}"
-handle.fun(target)
+a, b = fun()
+print(a)
