@@ -14,17 +14,20 @@ class Client():
     def link(self):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.connect((self.serverIp, self.serverPort))
-        self.socket.setblocking(False)
+        #elf.socket.setblocking(False)
 
     def send_info(self, info):
+        header = {}
+        header['mode'] = info['mode']
         if info['mode'] == 'getFachschaft':
-            header = {}
-            #header['name'] = info['name']
-            header['mode'] = info['mode']
             self.socket.send(self.package.pack_header(header))
         elif info['mode'] == 'classArrange':
-            header = {}
-            header['mode'] = info['mode']
+            message = info['message']
+            self.socket.send(self.package.pack_message(header, message))
+        elif info['mode'] == 'sendMajor':
+            header['Major'] = info['Major']
+            self.socket.send(self.package.pack_header(header))
+        elif info['mode'] == 'test':
             message = info['message']
             self.socket.send(self.package.pack_message(header, message))
         else:
@@ -32,6 +35,7 @@ class Client():
 
     def receive_info(self):
         try:
+
             header_len_struct = self.socket.recv(4)
             if not len(header_len_struct):
                 print('message miss')
@@ -47,8 +51,8 @@ class Client():
                     one_package = self.socket.recv(1024)
                     current_len += len(one_package)
                     message += one_package
-                message = self.package.unpack_message(message)
-                return header['mode'], message
+                message = self.package.unpack_message(message, 'utf-8')
+                return header, message
             elif header['mode'] == 'classArrange':
                 message = b''
                 message_len = header['message_length']
@@ -58,7 +62,9 @@ class Client():
                     current_len += len(one_package)
                     message += one_package
                 message = self.package.unpack_message(message)
-                return header['mode'], message
+                return header, message
+            elif header['mode'] == 'sendMajor':
+                return header, ''
             else:
                 return False, ''
         except Exception as e:

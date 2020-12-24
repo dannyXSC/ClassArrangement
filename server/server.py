@@ -18,7 +18,7 @@ class Server():
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.socket.bind(self.Ip, self.Port)
+        self.socket.bind((self.Ip, self.Port))
         self.socket.listen(SERVER_LISTEN_NUM)
 
         self.socket_list = [self.socket]
@@ -36,30 +36,36 @@ class Server():
                 client_socket, client_address = self.socket.accept()
 
                 # receve infomation from client
-                mode, message = self.receive_info(client_socket)
-                if mode is False:
+                header, message = self.receive_info(client_socket)
+                if header is False:
                     print("error")
                     continue
+                if header['mode'] != 'sendMajor':
+                    print('mode error!')
+                    continue
+                header['address'] = client_address
                 self.socket_list.append(client_socket)
-                # TODO:
-                result = self.process(message)
-                
-                self.send_info(client_socket, result)
+                self.clients[client_socket] = header
 
-                print(f"send successfully, client address is {client_address}")
+                self.send_info(client_socket, header, message)
+
+                print(
+                    f'connect successfully, client\'s add is {client_address}, \
+                        Major is {header["Major"]}')
+
             else:
-                mode, message = self.receive_info(notified_socket)
+                header, message = self.receive_info(notified_socket)
 
-                if mode is False:
-                    print('Closed connection from {}'.format(
-                        self.clients[notified_socket]['data'].decode('utf-8')))
+                if header is False:
+                    print('Closed connection from {}, major in {}'.format(
+                        self.clients[notified_socket]['address'],
+                        self.clients[notified_socket]['Major']))
                     sys.stdout.flush()
                     self.socket_list.remove(notified_socket)
                     del self.clients[notified_socket]
                     continue
 
-                # TODO:
-                # do something
+                self.send_info(notified_socket, header, message)
 
             for notified_socket in exception_sockets:
                 self.socket_list.remove(notified_socket)
@@ -74,9 +80,20 @@ class Server():
             header_len = self.package.unpack_header_size(header_len_struct)
             header_byte = client_socket.recv(header_len)
             header = self.package.unpack_header(header_byte)
-            if header['mode'] == 'getFachschaft':
-                return header['mode'], ''
-            elif header['mode'] == 'classArrange':
+            if header['mode'] == 'getFachschaft' or header[
+                    'mode'] == 'sendMajor':
+                return header, ''
+            # elif header['mode'] == 'classArrange':
+            #     message = b''
+            #     message_len = header['message_length']
+            #     current_len = 0
+            #     while current_len < message_len:
+            #         one_package = client_socket.recv(1024)
+            #         current_len += len(one_package)
+            #         message += one_package
+            #     message = self.package.unpack_message(message)
+            #     return header, messag
+            else:
                 message = b''
                 message_len = header['message_length']
                 current_len = 0
@@ -85,9 +102,7 @@ class Server():
                     current_len += len(one_package)
                     message += one_package
                 message = self.package.unpack_message(message)
-                return header['mode'], message
-            else:
-                return False, ''
+                return header, message
         except Exception as e:
             print(f'mystery error : {str(e)}')
             return False, ''
@@ -95,16 +110,12 @@ class Server():
     def process(self, message):
         return True
 
-    def send_info(self, client_socket, info):
-        if info['mode'] == 'getFachschaft':
-            header = {}
-            header['mode'] = info['mode']
-            message = info['message']
+    def send_info(self, client_socket, header, message):
+        if header['mode'] == 'getFachschaft':
             client_socket.send(self.package.pack_message(header, message))
-        elif info['mode'] == 'classArrange':
-            header = {}
-            header['mode'] = info['mode']
-            message = info['message']
+        elif header['mode'] == 'classArrange':
             client_socket.send(self.package.pack_message(header, message))
+        elif header['mode'] == 'sendMajor':
+            client_socket.send(self.package.pack_header(header))
         else:
             pass
