@@ -4,7 +4,7 @@ from package import Package
 
 
 class Client():
-    def __init__(self, Ip="127.0.0.1", Port=8888, st=0.1):
+    def __init__(self, Ip="192.168.1.122", Port=8888, st=0.1):
         self.sleepTime = st
         self.serverIp = Ip
         # self.serverIp="192.168.1.122"

@@ -1,4 +1,5 @@
 import server
 
 server = server.Server()
-server.start()
+while 1:
+    server.start()
