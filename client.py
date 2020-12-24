@@ -14,10 +14,10 @@ class Client():
         self.socket.setblocking(False)
 
     def send_info(self, info):
-        head = {}
         name = info['name']
         mode = info['mode']
         if mode == 'get_Fachschaft':
+            pass
 
     def receive_info(self, mode):
         pass
